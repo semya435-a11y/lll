@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f0a">
+<title>AFRAME | Зеркальный А-Фрейм — Чёнки</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700;900&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { background: #0a0f0a; background-image: radial-gradient(ellipse at 20% 0%, rgba(30,60,40,0.4) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(40,70,50,0.3) 0%, transparent 50%), linear-gradient(180deg, #0a0f0a 0%, #0d1410 50%, #0a0f0a 100%); color: #e8e4dc; overflow-x: hidden; }
+#bgCanvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.screen { position: relative; min-height: 100vh; min-height: 100dvh; width: 100%; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#hero { background: #0a0f0a; text-align: center; padding: 20px; overflow: hidden; }
+#hero-video { position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%) scale(1.05); z-index: 0; object-fit: cover; filter: brightness(0.5) saturate(0.9) contrast(1.05); will-change: transform; }
+#hero .video-overlay { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgba(10,15,10,0.6) 0%, rgba(10,15,10,0.75) 50%, rgba(10,15,10,0.95) 100%), radial-gradient(circle at 50% 50%, rgba(100,140,90,0.08) 0%, transparent 60%); pointer-events: none; }
+#hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(100,140,90,0.12) 0%, transparent 60%); z-index: 1; animation: heroPulse 7s ease-in-out infinite; pointer-events: none; }
+@keyframes heroPulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+.hero-stars { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.star { position: absolute; width: 3px; height: 3px; background: #b8d4a0; border-radius: 50%; opacity: 0; animation: starTwinkle 5s ease-in-out infinite; box-shadow: 0 0 10px 2px rgba(184,212,160,0.5); }
+@keyframes starTwinkle { 0%, 100% { opacity: 0; transform: scale(0.5) translateY(0); } 50% { opacity: 0.8; transform: scale(1.3) translateY(-8px); } }
+.hero-inner { position: relative; z-index: 3; max-width: 1000px; animation: fadeInUp 1.8s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; padding: 0 16px; }
+.hero-tag { display: inline-block; font-size: 11px; letter-spacing: 5px; text-transform: uppercase; color: #c8b88a; font-weight: 500; margin-bottom: 28px; padding: 8px 18px; border: 1px solid rgba(200,184,138,0.35); border-radius: 30px; background: rgba(200,184,138,0.08); backdrop-filter: blur(10px); animation: tagShine 3.5s ease-in-out infinite; }
+@keyframes tagShine { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,184,138,0); } 50% { box-shadow: 0 0 20px 4px rgba(200,184,138,0.25); } }
+.hero-inner h1 { font-size: clamp(2.4rem, 9vw, 7rem); font-weight: 900; text-transform: uppercase; letter-spacing: -2px; line-height: 0.95; margin-bottom: 24px; background: linear-gradient(to right, #f0ede6 25%, #d4af6a 90%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 10px 40px rgba(0,0,0,0.5); animation: titleBreathe 6s ease-in-out infinite; }
+@keyframes titleBreathe { 0%, 100% { filter: drop-shadow(0 0 15px rgba(200,184,138,0.25)); } 50% { filter: drop-shadow(0 0 30px rgba(200,184,138,0.5)); } }
+.hero-sub { font-size: clamp(0.9rem, 3.5vw, 1.25rem); color: #c0bbb0; font-weight: 300; letter-spacing: 1.5px; max-width: 600px; margin: 0 auto 40px; line-height: 1.6; padding: 0 10px; }
+.hero-cta { display: inline-block; padding: 18px 46px; background: linear-gradient(135deg, #d4af6a, #b8945a); color: #1a1508; font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; border: none; border-radius: 50px; cursor: pointer; text-decoration: none; box-shadow: 0 15px 40px rgba(212,175,106,0.35); transition: all 0.3s; animation: ctaPulse 3s ease-in-out infinite; font-family: inherit; position: relative; }
+.hero-cta:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 20px 50px rgba(212,175,106,0.5); animation: none; }
+@keyframes ctaPulse { 0%, 100% { box-shadow: 0 15px 40px rgba(212,175,106,0.35), 0 0 0 0 rgba(212,175,106,0.5); } 70% { box-shadow: 0 15px 40px rgba(212,175,106,0.35), 0 0 0 18px rgba(212,175,106,0); } 100% { box-shadow: 0 15px 40px rgba(212,175,106,0.35), 0 0 0 0 rgba(212,175,106,0); } }
+.panorama-btn { display: inline-flex; align-items: center; gap: 10px; margin-top: 20px; padding: 14px 28px; background: rgba(200,184,138,0.1); border: 1px solid rgba(200,184,138,0.5); border-radius: 50px; color: #d4af6a; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s; font-family: inherit; backdrop-filter: blur(10px); text-decoration: none; white-space: nowrap; }
+.panorama-btn:hover { background: rgba(200,184,138,0.2); border-color: #d4af6a; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(212,175,106,0.3); }
+.panorama-btn svg { width: 18px; height: 18px; fill: none; stroke: #d4af6a; stroke-width: 2; }
+.scroll-down { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; color: #c8b88a; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; animation: floatDown 2.8s ease-in-out infinite; text-decoration: none; z-index: 3; }
+.scroll-down svg { width: 26px; height: 26px; fill: none; stroke: #c8b88a; stroke-width: 2; stroke-linecap: round; }
+@keyframes floatDown { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.6; } 50% { transform: translateX(-50%) translateY(8px); opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+#gallery { background: radial-gradient(ellipse at center, #101a12 0%, #0a0f0a 70%); overflow: hidden; padding: 80px 0 60px; }
+.gallery-title { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); text-align: center; z-index: 5; pointer-events: none; width: 100%; padding: 0 20px; }
+.gallery-title h2 { font-size: clamp(1.5rem, 6vw, 2.5rem); font-weight: 900; text-transform: uppercase; letter-spacing: -1px; margin-bottom: 8px; background: linear-gradient(to right, #f0ede6 30%, #d4af6a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.gallery-title p { font-size: 10px; letter-spacing: 4px; color: #8a9080; text-transform: uppercase; }
+.scene { position: relative; height: 80vh; height: 80dvh; width: 100%; perspective: 1400px; perspective-origin: 50% 50%; display: flex; align-items: center; justify-content: center; margin-top: 40px; }
+.carousel { position: relative; width: 300px; height: 420px; transform-style: preserve-3d; animation: spin 36s linear infinite; }
+@keyframes spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+.mirror { position: absolute; inset: 0; width: 300px; height: 420px; transform-style: preserve-3d; backface-visibility: hidden; }
+.mirror-inner { position: relative; width: 100%; height: 100%; border-radius: 22px; overflow: hidden; background: linear-gradient(160deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 40%, rgba(10,15,10,0.6) 100%); border: 1px solid rgba(200,220,180,0.15); box-shadow: 0 25px 70px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(255,255,255,0.06); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.mirror-inner::before { content: ''; position: absolute; inset: 0; background: linear-gradient(125deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.02) 25%, transparent 45%, transparent 55%, rgba(200,184,138,0.12) 80%, rgba(200,184,138,0.25) 100%); z-index: 3; pointer-events: none; mix-blend-mode: overlay; }
+.mirror-photo { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(0.85) contrast(1.05) saturate(1.05); z-index: 1; }
+.mirror-inner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,15,10,0.95) 0%, rgba(10,15,10,0.3) 35%, transparent 60%); z-index: 2; pointer-events: none; }
+.mirror-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 22px; z-index: 4; text-align: left; }
+.mirror-tag { display: inline-block; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #d4af6a; margin-bottom: 8px; font-weight: 700; background: rgba(212,175,106,0.12); padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(212,175,106,0.3); }
+.mirror-title { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; line-height: 1; margin-bottom: 6px; background: linear-gradient(to right, #f0ede6 30%, #d4af6a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.mirror-desc { font-size: 11px; color: #b8b3a8; font-weight: 300; letter-spacing: 0.5px; }
+.mirror-shadow { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); width: 80%; height: 25px; background: radial-gradient(ellipse at center, rgba(184,212,160,0.3) 0%, transparent 70%); filter: blur(12px); pointer-events: none; }
+#booking-screen { position: relative; background: radial-gradient(ellipse at 50% 0%, rgba(30,60,40,0.3) 0%, transparent 60%), linear-gradient(180deg, #0a0f0a 0%, #0d1410 50%, #0a0f0a 100%); padding: 70px 16px 100px; text-align: center; overflow: hidden; }
+.booking-content { position: relative; z-index: 2; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.booking-header { margin-bottom: 30px; width: 100%; max-width: 700px; }
+.booking-header .tag { display: inline-block; font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: #c8b88a; font-weight: 500; margin-bottom: 18px; padding: 8px 18px; border: 1px solid rgba(200,184,138,0.35); border-radius: 30px; background: rgba(200,184,138,0.06); backdrop-filter: blur(10px); }
+.booking-header h2 { font-size: clamp(1.8rem, 8vw, 4rem); font-weight: 900; text-transform: uppercase; letter-spacing: -1.5px; line-height: 1; margin-bottom: 14px; background: linear-gradient(to right, #f0ede6 30%, #d4af6a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 30px rgba(0,0,0,0.4); }
+.booking-header p { color: #b0aa9e; font-size: 13px; letter-spacing: 0.5px; max-width: 500px; margin: 0 auto; line-height: 1.5; }
+.progress-steps { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 28px; width: 100%; max-width: 480px; padding: 0 10px; }
+.progress-step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; opacity: 0.35; transition: all 0.4s; }
+.progress-step.active { opacity: 1; }
+.progress-step.done { opacity: 0.7; }
+.progress-dot { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 2px solid rgba(200,220,180,0.15); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: #8a9080; transition: all 0.4s; }
+.progress-step.active .progress-dot { background: linear-gradient(135deg, #d4af6a, #b8945a); border-color: #d4af6a; color: #0a0f0a; box-shadow: 0 0 20px rgba(212,175,106,0.4); }
+.progress-step.done .progress-dot { background: rgba(212,175,106,0.15); border-color: rgba(212,175,106,0.4); color: #d4af6a; }
+.progress-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #8a9080; font-weight: 600; }
+.progress-step.active .progress-label { color: #d4af6a; }
+.progress-line { width: 20px; height: 2px; background: rgba(200,220,180,0.1); border-radius: 2px; }
+.progress-line.done { background: #d4af6a; }
+.bk-form-inline { width: 100%; max-width: 680px; margin: 0 auto; text-align: left; }
+.price-hint { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; background: rgba(20,30,20,0.85); backdrop-filter: blur(20px); border: 1px solid rgba(200,184,138,0.25); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+.price-hint-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.price-hint-item .ico { font-size: 18px; }
+.price-hint-item .lbl { color: #c0bbb0; font-weight: 500; }
+.price-hint-item .val { color: #d4af6a; font-weight: 900; font-size: 15px; letter-spacing: 0.5px; }
+.house-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.house-card { position: relative; border-radius: 22px; overflow: hidden; cursor: pointer; background: rgba(20,30,20,0.88); backdrop-filter: blur(20px); border: 2px solid rgba(200,220,180,0.12); transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); text-align: left; font-family: inherit; color: #e8e4dc; padding: 0; display: flex; flex-direction: column; box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+.house-card:hover { border-color: rgba(200,184,138,0.4); transform: translateY(-4px); }
+.house-card.active { border-color: #d4af6a; box-shadow: 0 0 0 4px rgba(212,175,106,0.15), 0 20px 50px rgba(0,0,0,0.6); transform: translateY(-2px); }
+.house-slideshow { position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: #0a0f0a; }
+.house-slideshow .hs-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 0.9s ease, transform 6s ease-out; transform: scale(1.06); filter: brightness(0.88) contrast(1.05); }
+.house-slideshow .hs-slide.active { opacity: 1; transform: scale(1); }
+.house-slideshow::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,15,10,0.95) 0%, transparent 45%); z-index: 2; pointer-events: none; }
+.house-badge { position: absolute; top: 12px; left: 12px; background: rgba(10,15,10,0.85); backdrop-filter: blur(8px); color: #d4af6a; padding: 5px 10px; border-radius: 8px; font-size: 9px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(212,175,106,0.4); z-index: 3; }
+.house-check { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 50%; background: #d4af6a; color: #0a0f0a; display: none; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; z-index: 4; box-shadow: 0 4px 12px rgba(212,175,106,0.5); }
+.house-card.active .house-check { display: flex; }
+.hs-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 3; }
+.hs-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.3s; }
+.hs-dot.active { background: #d4af6a; width: 16px; border-radius: 3px; }
+.house-info { padding: 16px 18px 18px; }
+.house-name { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.3px; margin-bottom: 8px; line-height: 1; background: linear-gradient(to right, #f0ede6 30%, #d4af6a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.house-features { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px; }
+.house-feat { font-size: 11px; color: #b8b3a8; display: flex; align-items: center; gap: 4px; }
+.house-feat .ico { font-size: 13px; }
+.house-price { display: flex; align-items: baseline; gap: 6px; padding-top: 12px; border-top: 1px solid rgba(212,175,106,0.18); }
+.house-price .from { font-size: 10px; color: #8a9080; text-transform: uppercase; letter-spacing: 1px; }
+.house-price .val { font-size: 22px; font-weight: 900; color: #d4af6a; letter-spacing: -0.5px; line-height: 1; }
+.house-price .unit { font-size: 11px; color: #8a9080; font-weight: 500; }
+.step { display: none; animation: stepIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.step.visible { display: block; }
+@keyframes stepIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(200,220,180,0.08); }
+.step-num { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #d4af6a, #b8945a); color: #0a0f0a; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; flex-shrink: 0; }
+.step-title { font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #f0ede6; }
+.step-sub { font-size: 11px; color: #a09b90; margin-top: 2px; }
+.calendar-wrap { background: rgba(20,30,20,0.85); backdrop-filter: blur(20px); border: 1px solid rgba(200,220,180,0.1); border-radius: 16px; padding: 18px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+.cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.cal-month { font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #f0ede6; }
+.cal-nav { display: flex; gap: 6px; }
+.cal-nav button { width: 36px; height: 36px; border-radius: 9px; background: rgba(255,255,255,0.05); border: 1px solid rgba(200,220,180,0.12); color: #d4af6a; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.cal-nav button:hover { background: rgba(212,175,106,0.15); border-color: #d4af6a; }
+.cal-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+.cal-weekdays span { text-align: center; font-size: 10px; color: #8a9080; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; border-radius: 9px; cursor: pointer; transition: all 0.15s; color: #d8d3c8; background: rgba(255,255,255,0.04); border: 1px solid transparent; font-family: inherit; }
+.cal-day:hover:not(.disabled):not(.empty):not(.past) { background: rgba(212,175,106,0.15); border-color: rgba(212,175,106,0.4); transform: scale(1.05); }
+.cal-day.today { border-color: rgba(212,175,106,0.4); }
+.cal-day.selected { background: linear-gradient(135deg, #d4af6a, #b8945a); color: #0a0f0a; font-weight: 900; box-shadow: 0 4px 12px rgba(212,175,106,0.4); }
+.cal-day.disabled { background: rgba(200,100,100,0.1); color: #8a7a7a; cursor: not-allowed; text-decoration: line-through; }
+.cal-day.disabled::after { content: '✕'; position: absolute; top: 3px; right: 5px; font-size: 8px; color: #d47a7a; font-weight: 900; }
+.cal-day.empty { background: transparent; cursor: default; }
+.cal-day.past { color: #4a4a44; cursor: not-allowed; background: transparent; }
+.weather-info { margin-top: 14px; display: none; align-items: center; gap: 14px; padding: 14px 18px; background: rgba(200,184,138,0.08); border: 1px solid rgba(200,184,138,0.25); border-radius: 14px; animation: weatherIn 0.5s ease; }
+.weather-info.show { display: flex; }
+@keyframes weatherIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.weather-icon { font-size: 32px; line-height: 1; }
+.weather-details { flex: 1; text-align: left; }
+.weather-temp { font-size: 18px; font-weight: 900; color: #f0ede6; line-height: 1.1; }
+.weather-desc { font-size: 11.5px; color: #b0aa9e; margin-top: 2px; }
+.weather-wind { font-size: 11px; color: #8a9080; margin-top: 2px; }
+.bk-hint { margin-top: 10px; font-size: 12px; font-weight: 600; color: #8a9080; }
+.bk-hint.weekday { color: #d4af6a; }
+.bk-hint.weekend { color: #e0a868; }
+.bk-hint.error { color: #e08888; }
+.bk-field { display: flex; flex-direction: column; margin-bottom: 16px; }
+.bk-field label { font-size: 11px; font-weight: 600; color: #c0bbb0; margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.req { color: #d4af6a; }
+.opt { color: #7a7a70; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.bk-field input, .bk-field select { width: 100%; padding: 15px 16px; border: 1px solid rgba(200,220,180,0.12); border-radius: 10px; font-size: 16px; color: #e8e4dc; background: rgba(20,30,20,0.7); backdrop-filter: blur(10px); outline: none; transition: all 0.2s; font-family: inherit; -webkit-appearance: none; appearance: none; }
+.bk-field input::placeholder { color: #6a6a60; }
+.bk-field input:focus, .bk-field select:focus { border-color: #d4af6a; background: rgba(212,175,106,0.08); box-shadow: 0 0 0 3px rgba(212,175,106,0.15); }
+.bk-field input.error, .bk-field select.error { border-color: #e08888; box-shadow: 0 0 0 3px rgba(224,136,136,0.15); }
+.bk-field select option { background: #0d1410; color: #e8e4dc; }
+.bk-services { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bk-serv { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; background: rgba(20,30,20,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(200,220,180,0.1); border-radius: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #e8e4dc; overflow: hidden; }
+.bk-serv:active { transform: scale(0.97); }
+.bk-serv.active { background: rgba(212,175,106,0.15); border-color: #d4af6a; box-shadow: 0 0 0 3px rgba(212,175,106,0.15); }
+.bk-serv-ico { font-size: 22px; line-height: 1; position: relative; z-index: 2; }
+.bk-serv-name { font-size: 12px; font-weight: 700; position: relative; z-index: 2; }
+.bk-serv-price { font-size: 11px; font-weight: 600; color: #8a9080; position: relative; z-index: 2; }
+.bk-serv.active .bk-serv-price { color: #d4af6a; }
+.bk-serv-price small { display: inline-block; background: rgba(212,175,106,0.25); color: #d4af6a; padding: 1px 5px; border-radius: 4px; font-size: 9.5px; margin-left: 2px; font-weight: 700; }
+#service-preview { margin-top: 12px; height: 0; overflow: hidden; border-radius: 14px; transition: height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), margin 0.3s; position: relative; border: 0 solid rgba(212,175,106,0.3); }
+#service-preview.active { height: 180px; margin-top: 12px; border-width: 1px; }
+#service-preview .sp-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 0.9s ease, transform 6s ease-out; transform: scale(1.06); filter: brightness(0.85) contrast(1.05); }
+#service-preview .sp-slide.active { opacity: 1; transform: scale(1); }
+#service-preview::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,15,10,0.85) 0%, transparent 50%); pointer-events: none; z-index: 2; }
+#service-preview .sp-label { position: absolute; bottom: 12px; left: 16px; font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #d4af6a; z-index: 3; }
+#service-preview .sp-dots { position: absolute; bottom: 14px; right: 14px; display: flex; gap: 4px; z-index: 3; }
+#service-preview .sp-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.3s; }
+#service-preview .sp-dot.active { background: #d4af6a; width: 16px; border-radius: 3px; }
+.rules-block { margin: 20px 0 16px; border-radius: 16px; overflow: hidden; background: rgba(20,30,20,0.85); backdrop-filter: blur(20px); border: 1px solid rgba(200,184,138,0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.rules-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; cursor: pointer; user-select: none; transition: background 0.2s; }
+.rules-header:hover { background: rgba(200,184,138,0.06); }
+.rules-header-left { display: flex; align-items: center; gap: 12px; }
+.rules-icon { width: 34px; height: 34px; border-radius: 50%; background: rgba(200,184,138,0.15); border: 1px solid rgba(200,184,138,0.4); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.rules-title { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.2px; color: #f0ede6; }
+.rules-sub { font-size: 10.5px; color: #a09b90; margin-top: 2px; }
+.rules-arrow { color: #d4af6a; font-size: 18px; transition: transform 0.3s; flex-shrink: 0; }
+.rules-block.open .rules-arrow { transform: rotate(180deg); }
+.rules-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.rules-block.open .rules-body { max-height: 600px; }
+.rules-list { padding: 4px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+.rule-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 12px; border-left: 3px solid #c8b88a; }
+.rule-emoji { font-size: 18px; line-height: 1.2; flex-shrink: 0; }
+.rule-text { font-size: 12.5px; line-height: 1.5; color: #c8c3b8; }
+.rule-text strong { color: #d4af6a; font-weight: 900; }
+.agree-checkbox { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px; background: rgba(200,184,138,0.06); border: 1px solid rgba(200,184,138,0.25); border-radius: 14px; margin-bottom: 16px; cursor: pointer; transition: all 0.2s; }
+.agree-checkbox:hover { background: rgba(200,184,138,0.1); }
+.agree-checkbox.error { border-color: #e08888; background: rgba(224,136,136,0.08); animation: shake 0.4s; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.agree-checkbox input { display: none; }
+.agree-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid rgba(200,184,138,0.5); background: rgba(20,30,20,0.5); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; margin-top: 1px; }
+.agree-checkbox input:checked + .agree-custom { background: #d4af6a; border-color: #d4af6a; }
+.agree-checkbox input:checked + .agree-custom::after { content: '✓'; color: #0a0f0a; font-weight: 900; font-size: 13px; }
+.agree-text { font-size: 12.5px; color: #c8c3b8; line-height: 1.5; }
+.agree-text strong { color: #d4af6a; font-weight: 700; }
+.bk-total { background: rgba(20,30,20,0.85); backdrop-filter: blur(20px); border: 1px solid rgba(200,184,138,0.2); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+.bk-total-row { display: flex; justify-content: space-between; font-size: 13px; color: #a09b90; }
+.bk-total-row span:last-child { font-weight: 600; color: #e8e4dc; }
+.bk-total-final { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 14px; border-top: 1px dashed rgba(200,184,138,0.3); font-size: 15px; font-weight: 800; color: #f0ede6; text-transform: uppercase; letter-spacing: 1px; }
+.bk-total-final span:last-child { color: #d4af6a; font-size: 24px; }
+.bk-submit { width: 100%; padding: 18px; background: linear-gradient(135deg, #d4af6a, #b8945a); color: #1a1508; border: none; border-radius: 12px; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; box-shadow: 0 10px 30px rgba(212,175,106,0.35); font-family: inherit; -webkit-appearance: none; }
+.bk-submit:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(212,175,106,0.5); }
+.bk-submit:active { transform: scale(0.98); }
+.bk-submit:disabled { background: #2a2a24; color: #6a6a60; box-shadow: none; cursor: not-allowed; transform: none; }
+.bk-policy { font-size: 10.5px; color: #7a7a70; text-align: center; line-height: 1.6; margin-top: 14px; }
+.bk-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-120%); background: #1a2018; color: #e8e4dc; border: 1px solid rgba(200,184,138,0.3); padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 600; z-index: 100000; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: calc(100% - 32px); text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.bk-toast.show { transform: translateX(-50%) translateY(0); }
+.bk-toast.success { border-color: rgba(200,184,138,0.6); color: #d4af6a; }
+.bk-toast.error { border-color: #e08888; color: #e08888; }
+#bkCanvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99999; display: none; }
+.sticky-cta { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(10,15,10,0.98) 0%, rgba(10,15,10,0.85) 100%); backdrop-filter: blur(20px); border-top: 1px solid rgba(200,184,138,0.2); z-index: 50; }
+.sticky-cta button { width: 100%; padding: 16px; background: linear-gradient(135deg, #d4af6a, #b8945a); color: #1a1508; border: none; border-radius: 12px; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; font-family: inherit; box-shadow: 0 8px 24px rgba(212,175,106,0.35); -webkit-appearance: none; }
+.sticky-cta button:active { transform: scale(0.98); }
+@media (max-width: 768px) {
+  #hero { background-attachment: scroll; background-position: center top; }
+  .carousel { width: 240px; height: 340px; }
+  .mirror { width: 240px; height: 340px; }
+  .mirror-title { font-size: 18px; }
+  .mirror-content { padding: 18px 16px; }
+  .mirror-desc { font-size: 10.5px; }
+  .mirror-tag { font-size: 8.5px; padding: 4px 8px; letter-spacing: 2px; }
+  .scene { perspective: 1100px; height: 70vh; height: 70dvh; margin-top: 30px; }
+  .gallery-title { top: 30px; }
+  #gallery { padding: 60px 0 40px; }
+  #booking-screen { padding: 50px 14px 130px; }
+  .booking-header { margin-bottom: 24px; }
+  .sticky-cta { display: block; }
+  .price-hint { padding: 14px 16px; gap: 10px; }
+  .price-hint-item { font-size: 12px; }
+  .price-hint-item .val { font-size: 14px; }
+  .house-grid { grid-template-columns: 1fr; gap: 20px; }
+  .house-card { border-radius: 20px; }
+  .house-slideshow { aspect-ratio: 16 / 11; }
+  .house-name { font-size: 20px; }
+  .house-info { padding: 18px 20px 20px; }
+  .house-price .val { font-size: 26px; }
+  .house-feat { font-size: 12px; }
+  .house-badge { font-size: 10px; padding: 6px 12px; }
+  .house-check { width: 32px; height: 32px; font-size: 16px; }
+  .hs-dots { bottom: 12px; gap: 5px; }
+  .hs-dot { width: 6px; height: 6px; }
+  .hs-dot.active { width: 20px; }
+  .progress-steps { gap: 6px; margin-bottom: 22px; }
+  .progress-dot { width: 28px; height: 28px; font-size: 12px; }
+  .progress-label { font-size: 8px; }
+  .progress-line { width: 14px; }
+  .cal-day { font-size: 15px; border-radius: 10px; aspect-ratio: 1; min-height: 40px; }
+  .cal-month { font-size: 16px; }
+  .calendar-wrap { padding: 16px 14px; }
+  .bk-field input, .bk-field select { padding: 16px; font-size: 16px; }
+  .bk-serv { padding: 16px 8px; }
+  .bk-serv-name { font-size: 12.5px; }
+  .bk-total-final span:last-child { font-size: 26px; }
+  #service-preview.active { height: 200px; }
+  .hero-cta { padding: 16px 36px; font-size: 12px; }
+  .rules-header { padding: 14px 16px; }
+  .rules-title { font-size: 11.5px; }
+  .rules-list { padding: 4px 14px 16px; gap: 10px; }
+  .rule-item { padding: 10px 12px; }
+  .rule-text { font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .hero-inner h1 { font-size: 2.1rem; letter-spacing: -1px; }
+  .hero-sub { font-size: 0.85rem; margin-bottom: 30px; }
+  .carousel { width: 210px; height: 300px; }
+  .mirror { width: 210px; height: 300px; }
+  .mirror-title { font-size: 16px; }
+  .scene { height: 65vh; height: 65dvh; }
+  .cal-day { font-size: 13px; min-height: 36px; }
+  .house-name { font-size: 17px; }
+  .house-price .val { font-size: 22px; }
+  #service-preview.active { height: 160px; }
+  .rule-text { font-size: 11.5px; }
+}
+@media (hover: none) {
+  .bk-serv:hover { background: rgba(20,30,20,0.7); border-color: rgba(200,220,180,0.1); }
+  .bk-submit:hover { transform: none; box-shadow: 0 10px 30px rgba(212,175,106,0.35); }
+  .sticky-cta button:hover { transform: none; }
+  .house-card:hover { transform: none; border-color: rgba(200,220,180,0.12); }
+  .hero-cta:hover { transform: none; animation: ctaPulse 3s ease-in-out infinite; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<section class="screen" id="hero">
+  <video id="hero-video" autoplay muted loop playsinline poster="https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?q=80&w=2000&auto=format&fit=crop">
+    <source src="https://videos.pexels.com/video-files/1526909/1526909-hd_1920_1080_24fps.mp4" type="video/mp4">
+  </video>
+  <div class="video-overlay"></div>
+  <div class="hero-stars" id="heroStars"></div>
+  <div class="hero-inner">
+    <span class="hero-tag">◆ Эксклюзивный отдых · Чёнки</span>
+    <h1>Зеркальный<br>А-Фрейм</h1>
+    <p class="hero-sub">Треугольные домики с панорамным остеклением. Баня, купель и тишина. Без соседей. Без компромиссов.</p>
+    <a href="#booking-screen" class="hero-cta">Забронировать сейчас</a>
+    <br>
+    <a href="https://yandex.by/maps/-/CXGdARjz" target="_blank" rel="noopener" class="panorama-btn">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2a10 10 0 0 1 10 10M12 2a10 10 0 0 0-10 10M22 12a10 10 0 0 1-10 10M2 12a10 10 0 0 0 10 10"/></svg>
+      Смотреть 360° панораму
+    </a>
+  </div>
+  <a href="#gallery" class="scroll-down" aria-label="Листать вниз">
+    <svg viewBox="0 0 24 24"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+    <span>Листай</span>
+  </a>
+</section>
+
+<section class="screen" id="gallery">
+  <div class="gallery-title">
+    <h2>Галерея</h2>
+    <p>Левитирующие зеркала</p>
+  </div>
+  <div class="scene">
+    <div class="carousel" id="carousel">
+      <div class="mirror"><div class="mirror-inner"><div class="mirror-photo" style="background-image:url('https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?q=80&w=1200&auto=format&fit=crop')"></div><div class="mirror-content"><span class="mirror-tag">Домик №1</span><div class="mirror-title">А-Фрейм №1</div><div class="mirror-desc">Панорамное окно · 2-4 гостя</div></div><div class="mirror-shadow"></div></div></div>
+      <div class="mirror"><div class="mirror-inner"><div class="mirror-photo" style="background-image:url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1200&auto=format&fit=crop')"></div><div class="mirror-content"><span class="mirror-tag">Баня</span><div class="mirror-title">Русская баня</div><div class="mirror-desc">На дровах · до 8 человек</div></div><div class="mirror-shadow"></div></div></div>
+      <div class="mirror"><div class="mirror-inner"><div class="mirror-photo" style="background-image:url('https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=1200&auto=format&fit=crop')"></div><div class="mirror-content"><span class="mirror-tag">Купель</span><div class="mirror-title">Кедровая купель</div><div class="mirror-desc">Под открытым небом · круглый год</div></div><div class="mirror-shadow"></div></div></div>
+      <div class="mirror"><div class="mirror-inner"><div class="mirror-photo" style="background-image:url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=1200&auto=format&fit=crop')"></div><div class="mirror-content"><span class="mirror-tag">Домик №2</span><div class="mirror-title">А-Фрейм №2</div><div class="mirror-desc">Терраса · вид на лес · 2-6 гостей</div></div><div class="mirror-shadow"></div></div></div>
+      <div class="mirror"><div class="mirror-inner"><div class="mirror-photo" style="background-image:url('https://images.unsplash.com/photo-1510798831971-661eb04b3739?q=80&w=1200&auto=format&fit=crop')"></div><div class="mirror-content"><span class="mirror-tag">Комплекс</span><div class="mirror-title">Всё включено</div><div class="mirror-desc">Домик + баня + купель</div></div><div class="mirror-shadow"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="booking-screen">
+  <div class="booking-content">
+    <div class="booking-header">
+      <span class="tag">◆ Забронировать</span>
+      <h2>Твой личный курорт</h2>
+      <p>Выбери домик, дату и заполни форму — мы свяжемся для подтверждения</p>
+    </div>
+    <div class="progress-steps">
+      <div class="progress-step active" data-step="1"><div class="progress-dot">1</div><div class="progress-label">Домик</div></div>
+      <div class="progress-line" id="line1"></div>
+      <div class="progress-step" data-step="2"><div class="progress-dot">2</div><div class="progress-label">Дата</div></div>
+      <div class="progress-line" id="line2"></div>
+      <div class="progress-step" data-step="3"><div class="progress-dot">3</div><div class="progress-label">Данные</div></div>
+    </div>
+    <form class="bk-form-inline" id="bkForm" novalidate>
+      <div class="price-hint">
+        <div class="price-hint-item"><span class="ico">📅</span><span class="lbl">Будни:</span><span class="val">300 Br</span></div>
+        <div class="price-hint-item"><span class="ico">🎉</span><span class="lbl">Выходные:</span><span class="val">350 Br</span></div>
+        <div class="price-hint-item"><span class="ico">👥</span><span class="lbl">База:</span><span class="val">2 гостя</span></div>
+      </div>
+      <div class="step visible" id="step1">
+        <div class="step-header"><div class="step-num">1</div><div><div class="step-title">Выбери домик</div><div class="step-sub">Два одинаковых по цене варианта — выбери, что больше по душе</div></div></div>
+        <div class="house-grid">
+          <button type="button" class="house-card active" data-house="1">
+            <div class="house-slideshow" data-slideshow="1">
+              <div class="hs-slide active" style="background-image:url('https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?q=80&w=1000&auto=format&fit=crop')"></div>
+              <div class="hs-slide" style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1000&auto=format&fit=crop')"></div>
+              <div class="hs-slide" style="background-image:url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1000&auto=format&fit=crop')"></div>
+              <div class="hs-slide" style="background-image:url('https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1000&auto=format&fit=crop')"></div>
+              <span class="house-badge">◆ Домик №1</span><span class="house-check">✓</span>
+              <div class="hs-dots"><span class="hs-dot active"></span><span class="hs-dot"></span><span class="hs-dot"></span><span class="hs-dot"></span></div>
+            </div>
+            <div class="house-info"><div class="house-name">А-Фрейм №1</div><div class="house-features"><span class="house-feat"><span class="ico">🪟</span> Панорамное окно</span><span class="house-feat"><span class="ico">👥</span> 2-4 гостя</span><span class="house-feat"><span class="ico">🌲</span> Вид на лес</span></div><div class="house-price"><span class="from">от</span><span class="val">300</span><span class="unit">Br / ночь</span></div></div>
+          </button>
+          <button type="button" class="house-card" data-house="2">
+            <div class="house-slideshow" data-slideshow="2">
+              <div class="hs-slide active" style="background-image:url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?q=80&w=1000&auto=format&fit=crop')"></div>
+              <div class="hs-slide" style="background-image:url('https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1000&auto=format&fit=crop')"></div>
+              <div class="hs-slide" style="background-image:url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=1000&auto=format&fit=crop')"></div>
+              <div class="hs-slide" style="background-image:url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1000&auto=format&fit=crop')"></div>
+              <span class="house-badge">◆ Домик №2</span><span class="house-check">✓</span>
+              <div class="hs-dots"><span class="hs-dot active"></span><span class="hs-dot"></span><span class="hs-dot"></span><span class="hs-dot"></span></div>
+            </div>
+            <div class="house-info"><div class="house-name">А-Фрейм №2</div><div class="house-features"><span class="house-feat"><span class="ico">🌳</span> Терраса</span><span class="house-feat"><span class="ico">👥</span> 2-6 гостей</span><span class="house-feat"><span class="ico">🔥</span> Камин</span></div><div class="house-price"><span class="from">от</span><span class="val">300</span><span class="unit">Br / ночь</span></div></div>
+          </button>
+        </div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-header"><div class="step-num">2</div><div><div class="step-title">Выбери дату заезда</div><div class="step-sub">Красные даты — уже заняты. Выбери свободную</div></div></div>
+        <div class="calendar-wrap">
+          <div class="cal-header"><div class="cal-month" id="calMonth">Ноябрь 2026</div><div class="cal-nav"><button type="button" id="calPrev">‹</button><button type="button" id="calNext">›</button></div></div>
+          <div class="cal-weekdays"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+          <div class="cal-days" id="calDays"></div>
+        </div>
+        <div class="bk-hint" id="bkDayHint">Выберите дату</div>
+        <div class="weather-info" id="weatherInfo"><div class="weather-icon" id="weatherIcon">☀️</div><div class="weather-details"><div class="weather-temp" id="weatherTemp">—</div><div class="weather-desc" id="weatherDesc">Погода на дату заезда</div><div class="weather-wind" id="weatherWind"></div></div></div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-header"><div class="step-num">3</div><div><div class="step-title">Твои данные</div><div class="step-sub">Заполни — и мы свяжемся для подтверждения</div></div></div>
+        <div class="bk-field"><label for="bkGuests">👥 Количество гостей</label><select id="bkGuests"><option value="2">2 гостя (база)</option><option value="3">3 гостя (+50 Br)</option><option value="4">4 гостя (+100 Br)</option><option value="5">5 гостей (+150 Br)</option><option value="6">6 гостей (+200 Br)</option></select></div>
+        <div class="bk-field">
+          <label>🛀 Дополнительные услуги</label>
+          <div class="bk-services">
+            <button type="button" class="bk-serv active" data-service="none" data-price="0"><span class="bk-serv-ico">❌</span><span class="bk-serv-name">Без услуг</span><span class="bk-serv-price">0 Br</span></button>
+            <button type="button" class="bk-serv" data-service="banya" data-price="150"><span class="bk-serv-ico">🛀</span><span class="bk-serv-name">Баня</span><span class="bk-serv-price">150 Br</span></button>
+            <button type="button" class="bk-serv" data-service="kupel" data-price="150"><span class="bk-serv-ico">💧</span><span class="bk-serv-name">Купель</span><span class="bk-serv-price">150 Br</span></button>
+            <button type="button" class="bk-serv" data-service="both" data-price="250"><span class="bk-serv-ico">🔥</span><span class="bk-serv-name">Баня + Купель</span><span class="bk-serv-price">250 Br <small>выгодно</small></span></button>
+          </div>
+          <div id="service-preview">
+            <div class="sp-slide active" data-service-img="banya" style="background-image:url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="banya" style="background-image:url('https://images.unsplash.com/photo-1610555356070-d0efb6505f81?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="banya" style="background-image:url('https://images.unsplash.com/photo-1600965962361-9035dbfd1c50?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="kupel" style="background-image:url('https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="kupel" style="background-image:url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="kupel" style="background-image:url('https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="both" style="background-image:url('https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="both" style="background-image:url('https://images.unsplash.com/photo-1540541338287-41700207dee6?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="both" style="background-image:url('https://images.unsplash.com/photo-1600965962361-9035dbfd1c50?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-slide" data-service-img="both" style="background-image:url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=1200&auto=format&fit=crop')"></div>
+            <div class="sp-label" id="spLabel"></div><div class="sp-dots" id="spDots"></div>
+          </div>
+        </div>
+        <div class="bk-field"><label for="bkName">🙋 Ваше имя <span class="req">*</span></label><input type="text" id="bkName" placeholder="Например, Анна" autocomplete="name" required></div>
+        <div class="bk-field"><label for="bkPhone">📞 Телефон <span class="req">*</span></label><input type="tel" id="bkPhone" placeholder="+375 (29) 123-45-67" autocomplete="tel" required></div>
+        <div class="bk-field"><label for="bkInsta">📸 Instagram <span class="opt">(необязательно)</span></label><input type="text" id="bkInsta" placeholder="@username" autocomplete="off"></div>
+        <div class="rules-block" id="rulesBlock">
+          <div class="rules-header" id="rulesHeader">
+            <div class="rules-header-left"><div class="rules-icon">📋</div><div><div class="rules-title">Правила бронирования</div><div class="rules-sub">Предоплата, отмена, перенос — нажми, чтобы прочитать</div></div></div>
+            <div class="rules-arrow">⌄</div>
+          </div>
+          <div class="rules-body">
+            <div class="rules-list">
+              <div class="rule-item"><div class="rule-emoji">💳</div><div class="rule-text">Бронирование производится по <strong>предоплате 100 Br</strong></div></div>
+              <div class="rule-item"><div class="rule-emoji">✅</div><div class="rule-text">Полный возврат денежных средств — при отмене брони <strong>за 14 календарных дней и более</strong></div></div>
+              <div class="rule-item"><div class="rule-emoji">🔄</div><div class="rule-text">Перенос даты бронирования — <strong>ОДИН раз</strong>, не позднее чем <strong>за 7 календарных дней</strong> (без возврата предоплаты)</div></div>
+              <div class="rule-item"><div class="rule-emoji">⚠️</div><div class="rule-text">Менее чем за <strong>7 календарных дней</strong> — отмена брони <strong>без возврата</strong> денежных средств и без переноса</div></div>
+            </div>
+          </div>
+        </div>
+        <label class="agree-checkbox" id="agreeBox">
+          <input type="checkbox" id="agreeCheck">
+          <span class="agree-custom"></span>
+          <span class="agree-text">Я ознакомлен(а) и <strong>согласен(на)</strong> с правилами бронирования, включая условия предоплаты и отмены</span>
+        </label>
+        <div class="bk-total">
+          <div class="bk-total-row"><span>Домик</span><span id="bkHouseLabel">А-Фрейм №1</span></div>
+          <div class="bk-total-row"><span>Дата</span><span id="bkDateLabel">—</span></div>
+          <div class="bk-total-row"><span>База</span><span id="bkBasePrice">—</span></div>
+          <div class="bk-total-row" id="bkGuestsRow" style="display:none"><span>Доплата за гостей</span><span id="bkGuestsPrice">0 Br</span></div>
+          <div class="bk-total-row" id="bkServiceRow" style="display:none"><span>Услуги</span><span id="bkServicePrice">0 Br</span></div>
+          <div class="bk-total-row" style="color: #d4af6a; font-weight: 700; font-size: 12px; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(200,184,138,0.2);"><span>💳 Предоплата</span><span>100 Br</span></div>
+          <div class="bk-total-final"><span>Итого</span><span id="bkTotal">0 Br</span></div>
+        </div>
+        <button type="submit" class="bk-submit" id="bkSubmit">✅ Забронировать</button>
+        <p class="bk-policy">Нажимая кнопку, вы соглашаетесь на обработку персональных данных.<br>Бронь считается подтверждённой после внесения предоплаты и звонка менеджера.</p>
+      </div>
+    </form>
+  </div>
+</section>
+
+<div class="sticky-cta"><button type="button" id="stickyBook">🏡 Забронировать домик</button></div>
+<canvas id="bkCanvas"></canvas>
+
+<script>
+// Фон (светлячки)
+(function() {
+  const c = document.getElementById('bgCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  let W, H, particles = [];
+  function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  const count = window.innerWidth < 768 ? 30 : 60;
+  for (let i = 0; i < count; i++) {
+    particles.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 2 + 0.5, vx: (Math.random() - 0.5) * 0.12, vy: (Math.random() - 0.5) * 0.12, alpha: Math.random() * 0.4 + 0.1, hue: Math.random() > 0.5 ? '184,212,160' : '200,184,138' });
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${p.hue},${p.alpha})`;
+      ctx.shadowBlur = 12; ctx.shadowColor = `rgba(${p.hue},0.5)`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// Основной скрипт
+(function () {
+  "use strict";
+  
+  const CONFIG = {
+    submitUrl: "https://script.google.com/macros/s/AKfycbx64AsrgtgLiqjV3cshq4VaerEzf_zMOMDPNtvS7BUhTlQWi2QWOY_TXgrTaNb9gFq2/exec",
+    houses: { "1": { name: "А-Фрейм №1", priceWeekday: 300, priceWeekend: 350 }, "2": { name: "А-Фрейм №2", priceWeekday: 300, priceWeekend: 350 } },
+    guestExtra: 50, baseGuests: 2
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const state = { house: "1", date: "", guests: 2, service: "none", servicePrice: 0 };
+  let viewDate = new Date();
+  let bookedCache = { "1": [], "2": [] };
+
+  // 1. Загрузка броней
+  async function loadBookings() {
+    try {
+      const res = await fetch(CONFIG.submitUrl + "?action=list&_=" + Date.now());
+      const data = await res.json();
+      if (data && data.ok && data.booked) bookedCache = data.booked;
+    } catch (e) { console.warn("loadBookings error:", e); }
+  }
+
+  function isBooked(houseId, iso) {
+    return bookedCache[houseId] && bookedCache[houseId].indexOf(iso) !== -1;
+  }
+
+  // 2. Отрисовка календаря
+  function renderCalendar() {
+    const calMonth = $("calMonth");
+    const calDays = $("calDays");
+    if (!calMonth || !calDays) return;
+
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const monthNames = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+    calMonth.textContent = monthNames[month] + " " + year;
+    
+    const firstDay = new Date(year, month, 1);
+    let startWeekday = firstDay.getDay() - 1; 
+    if (startWeekday < 0) startWeekday = 6;
+    
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
+    
+    calDays.innerHTML = "";
+    
+    for (let i = 0; i < startWeekday; i++) {
+      const empty = document.createElement("div"); 
+      empty.className = "cal-day empty"; 
+      calDays.appendChild(empty);
+    }
+    
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = year + "-" + String(month+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+      const btn = document.createElement("button");
+      btn.type = "button"; 
+      btn.className = "cal-day"; 
+      btn.textContent = d;
+      
+      if (iso === todayStr) btn.classList.add("today");
+      if (iso < todayStr) btn.classList.add("past");
+      if (iso === state.date) btn.classList.add("selected");
+      
+      if (isBooked(state.house, iso)) { 
+        btn.classList.add("disabled"); 
+        btn.disabled = true; 
+      }
+      
+      btn.onclick = function() {
+        if (this.classList.contains("disabled") || this.classList.contains("past") || this.classList.contains("empty")) return;
+        
+        state.date = iso;
+        document.querySelectorAll(".cal-day").forEach(el => el.classList.remove("selected"));
+        this.classList.add("selected");
+        
+        // Показываем 3-й шаг
+        const step3 = $("step3");
+        if (step3) step3.classList.add("visible");
+        
+        // Подсчет суммы
+        recalc();
+        
+        // Обновляем шаги
+        updateProgress();
+        
+        // Прокрутка к форме
+        setTimeout(() => { if (step3) step3.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
+      };
+      
+      calDays.appendChild(btn);
+    }
+
+    const curMonth = new Date();
+    if (year === curMonth.getFullYear() && month === curMonth.getMonth()) {
+      const prevBtn = $("calPrev");
+      if (prevBtn) prevBtn.disabled = true;
+    } else {
+      const prevBtn = $("calPrev");
+      if (prevBtn) prevBtn.disabled = false;
+    }
+  }
+
+  // 3. Кнопки календаря
+  const pBtn = $("calPrev");
+  const nBtn = $("calNext");
+  if (pBtn) pBtn.onclick = function() { viewDate.setMonth(viewDate.getMonth() - 1); renderCalendar(); };
+  if (nBtn) nBtn.onclick = function() { viewDate.setMonth(viewDate.getMonth() + 1); renderCalendar(); };
+
+  // 4. Карточки домиков
+  const cards = document.querySelectorAll(".house-card");
+  for (let i = 0; i < cards.length; i++) {
+    cards[i].onclick = function() {
+      for (let j = 0; j < cards.length; j++) cards[j].classList.remove("active");
+      this.classList.add("active");
+      
+      state.house = this.getAttribute("data-house");
+      
+      // Показываем календарь
+      renderCalendar();
+      const step2 = $("step2");
+      if (step2) {
+        step2.classList.add("visible");
+        setTimeout(() => step2.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+      }
+    };
+  }
+
+  // 5. Услуги
+  const servs = document.querySelectorAll(".bk-serv");
+  for (let i = 0; i < servs.length; i++) {
+    servs[i].onclick = function() {
+      for (let j = 0; j < servs.length; j++) servs[j].classList.remove("active");
+      this.classList.add("active");
+      state.service = this.getAttribute("data-service");
+      state.servicePrice = parseInt(this.getAttribute("data-price")) || 0;
+      
+      // Обновляем визуальный блок услуг
+      const serviceLabel = $("spLabel");
+      if (serviceLabel) {
+        serviceLabel.textContent = this.querySelector(".bk-serv-name").textContent;
+      }
+      recalc();
+    };
+  }
+
+  // 6. Гости
+  const guestsSel = $("bkGuests");
+  if (guestsSel) {
+    guestsSel.onchange = function() {
+      state.guests = parseInt(this.value) || 2;
+      recalc();
+    };
+  }
+
+  // 7. Подсчет суммы
+  function recalc() {
+    const houseLabel = $("bkHouseLabel");
+    const basePriceEl = $("bkBasePrice");
+    const dateLabel = $("bkDateLabel");
+    const guestsRow = $("bkGuestsRow");
+    const guestsPriceEl = $("bkGuestsPrice");
+    const serviceRow = $("bkServiceRow");
+    const servicePriceEl = $("bkServicePrice");
+    const totalEl = $("bkTotal");
+    const dayHint = $("bkDayHint");
+    
+    if (!houseLabel) return 0;
+    
+    const h = CONFIG.houses[state.house];
+    houseLabel.textContent = h.name;
+    
+    if (!state.date) {
+      if (basePriceEl) basePriceEl.textContent = "—"; 
+      if (totalEl) totalEl.textContent = "0 Br"; 
+      if (dateLabel) dateLabel.textContent = "—";
+      if (dayHint) { dayHint.textContent = "Выберите дату"; dayHint.className = "bk-hint"; }
+      return 0;
+    }
+    
+    const d = new Date(state.date + "T12:00:00");
+    const day = d.getDay();
+    const isWeekend = day === 0 || day === 6;
+    const base = isWeekend ? h.priceWeekend : h.priceWeekday;
+    const guestsExtra = Math.max(0, state.guests - CONFIG.baseGuests) * CONFIG.guestExtra;
+    const total = base + guestsExtra + state.servicePrice;
+    
+    const money = (n) => n.toLocaleString("ru-RU") + " Br";
+    
+    if (basePriceEl) basePriceEl.textContent = money(base);
+    if (dateLabel) dateLabel.textContent = d.toLocaleDateString("ru-RU", { day: 'numeric', month: 'long' });
+    
+    if (state.guests > CONFIG.baseGuests) { 
+      if (guestsRow) guestsRow.style.display = "flex"; 
+      if (guestsPriceEl) guestsPriceEl.textContent = money(guestsExtra); 
+    } else { 
+      if (guestsRow) guestsRow.style.display = "none"; 
+    }
+    
+    if (state.servicePrice > 0) { 
+      if (serviceRow) serviceRow.style.display = "flex"; 
+      if (servicePriceEl) servicePriceEl.textContent = money(state.servicePrice); 
+    } else { 
+      if (serviceRow) serviceRow.style.display = "none"; 
+    }
+    
+    if (totalEl) totalEl.textContent = money(total);
+    
+    if (dayHint) {
+      dayHint.textContent = `🗓 ${d.toLocaleDateString("ru-RU")} — ${isWeekend ? "выходной" : "будний"}`;
+      dayHint.className = "bk-hint " + (isWeekend ? "weekend" : "weekday");
+    }
+    return total;
+  }
+
+  // 8. Прогресс-бар
+  function updateProgress() {
+    const progressSteps = document.querySelectorAll(".progress-step");
+    const line1 = $("line1");
+    const line2 = $("line2");
+    if (!progressSteps.length) return;
+    
+    const hasHouse = !!state.house;
+    const hasDate = !!state.date;
+    
+    progressSteps.forEach(s => s.classList.remove("active", "done"));
+    if (line1) line1.classList.remove("done");
+    if (line2) line2.classList.remove("done");
+    
+    if (hasDate) {
+      progressSteps[0].classList.add("done"); 
+      progressSteps[1].classList.add("done"); 
+      progressSteps[2].classList.add("active");
+      if (line1) line1.classList.add("done"); 
+      if (line2) line2.classList.add("done");
+    } else if (hasHouse) {
+      progressSteps[0].classList.add("done"); 
+      progressSteps[1].classList.add("active");
+      if (line1) line1.classList.add("done");
+    } else { 
+      progressSteps[0].classList.add("active"); 
+    }
+  }
+
+  // 9. Отправка формы
+  const form = $("bkForm");
+  if (form) {
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      
+      const nameInput = $("bkName");
+      const phoneInput = $("bkPhone");
+      const agreeCheck = $("agreeCheck");
+      const agreeBox = $("agreeBox");
+      
+      if (!state.date) { alert("Выберите дату!"); return; }
+      if (!nameInput.value || !phoneInput.value) { alert("Заполните имя и телефон!"); return; }
+      if (!agreeCheck.checked) { 
+        agreeBox.classList.add("error");
+        alert("Поставьте галочку согласия с правилами!"); 
+        return; 
+      }
+
+      const btn = $("bkSubmit");
+      btn.textContent = "Отправка...";
+      btn.disabled = true;
+
+      const fd = new URLSearchParams();
+      fd.append("date", state.date);
+      fd.append("house", state.house);
+      fd.append("name", nameInput.value);
+      fd.append("phone", phoneInput.value);
+      fd.append("instagram", $("bkInsta").value || "");
+      fd.append("guests", state.guests);
+      fd.append("serviceLabel", state.service);
+      fd.append("total", $("bkTotal").textContent.replace(/[^\d]/g, ""));
+
+      fetch(CONFIG.submitUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: fd.toString()
+      }).then(() => {
+        alert("✅ Заявка отправлена! Внесите предоплату 100 Br. Мы свяжемся с вами.");
+        form.reset();
+        agreeCheck.checked = false;
+        agreeBox.classList.remove("error");
+        state.date = "";
+        btn.textContent = "✅ Забронировать";
+        btn.disabled = false;
+        renderCalendar();
+        recalc();
+        updateProgress();
+      }).catch(() => {
+        alert("Ошибка отправки. Проверьте интернет.");
+        btn.textContent = "✅ Забронировать";
+        btn.disabled = false;
+      });
+    };
+  }
+
+  // Инициализация
+  renderCalendar();
+  recalc();
+  updateProgress();
+  loadBookings().then(() => renderCalendar());
+
+})();
+</script>
+</body>
+</html>
